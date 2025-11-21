@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Guild - Zero to Pro</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: { blob: "blob 7s infinite" },
+                    keyframes: {
+                        blob: {
+                            "0%": { transform: "translate(0px, 0px) scale(1)" },
+                            "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+                            "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+                            "100%": { transform: "translate(0px, 0px) scale(1)" },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- SIMPLIFIED ICONS (No external dependency needed) ---
+        // These are standard SVG paths for the icons used.
+        const Icons = {
+            clock: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            check: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            users: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+            message: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
+            video: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
+            db: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>,
+            code: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>,
+            cpu: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>,
+            zap: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+            terminal: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+            star: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>,
+            globe: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>,
+            briefcase: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+            award: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            menu: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>,
+            x: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
+            arrowRight: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>,
+            calendar: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        };
+
+        // Reusable Icon Component
+        const Icon = ({ name, className }) => {
+            return <div className={className}>{Icons[name]}</div>;
+        };
+
+        const App = () => {
+            const [timeLeft, setTimeLeft] = useState(1800);
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setTimeLeft((prev) => (prev > 0 ? prev - 1 : 1800));
+                }, 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            const formatTime = (seconds) => {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            };
+
+            const curriculum = [
+                { title: "Python for AI", icon: "code", color: "text-yellow-400", desc: "Master the fundamental language of AI dev." },
+                { title: "Master LLM & Langchain", icon: "cpu", color: "text-blue-400", desc: "Build complex chains and agents with LangChain." },
+                { title: "Generative AI for Busy People", icon: "zap", color: "text-purple-400", desc: "Quickly leverage GenAI tools for productivity." },
+                { title: "Prompt Engineering", icon: "terminal", color: "text-green-400", desc: "Learn the art of communicating with LLMs." },
+                { title: "Multimodal Gemini", icon: "star", color: "text-indigo-400", desc: "Work with text, images, and video using Gemini." },
+                { title: "RAG vs FineTuning", icon: "db", color: "text-red-400", desc: "Deep dive into retrieval-augmented generation." },
+                { title: "ML Ops & Deployment", icon: "globe", color: "text-teal-400", desc: "Deploy your models to production reliably." },
+                { title: "Vector Databases", icon: "db", color: "text-orange-400", desc: "Store and retrieve high-dimensional data." },
+                { title: "AI Agents", icon: "users", color: "text-pink-400", desc: "Build autonomous agents that perform tasks." },
+                { title: "Git & GitHub", icon: "code", color: "text-gray-400", desc: "Essential version control for every developer." },
+                { title: "Hugging Face", icon: "message", color: "text-yellow-600", desc: "Access thousands of pre-trained models." },
+                { title: "Essential Prerequisites", icon: "check", color: "text-emerald-400", desc: "Math, stats, and logic needed for AI." },
+            ];
+
+            const benefits = [
+                { title: "Hands-on Experience", icon: "briefcase", desc: "Don't just watch. Build real-world projects." },
+                { title: "Land Dream Jobs", icon: "award", desc: "Curriculum designed for employability and startups." },
+                { title: "Zero to Pro", icon: "zap", desc: "A complete roadmap for 6 months of mastery." },
+                { title: "$4,000+ Value", icon: "db", desc: "Get enterprise-grade training for a fraction of the cost." },
+            ];
+
+            return (
+                <div className="font-sans text-gray-900 bg-gray-50 min-h-screen flex flex-col">
+                    
+                    {/* Floating Timer */}
+                    <div className="bg-red-600 text-white py-2 px-4 fixed w-full top-0 z-50 text-center font-bold shadow-lg flex justify-center items-center gap-2">
+                        <Icon name="clock" className="w-5 h-5 animate-pulse" />
+                        <span>Offer Ends In: {formatTime(timeLeft)}</span>
+                        <span className="hidden sm:inline mx-2">|</span>
+                        <span className="text-sm font-normal hidden sm:inline">Get 30% OFF Annual Membership Now!</span>
+                    </div>
+
+                    {/* Navigation */}
+                    <nav className="bg-white shadow-sm mt-10 sticky top-10 z-40">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between h-16">
+                                <div className="flex items-center gap-3">
+                                    <img 
+                                        src="https://raw.githubusercontent.com/Decoding-Data-Science/airesidency/main/dds-logo-removebg-preview.png" 
+                                        alt="AI Guild Logo" 
+                                        className="h-12 w-auto object-contain"
+                                    />
+                                    <span className="text-2xl font-extrabold text-blue-900 tracking-tight hidden sm:block">AI<span className="text-blue-600">GUILD</span></span>
+                                </div>
+                                <div className="hidden md:flex items-center space-x-8">
+                                    <a href="#curriculum" className="text-gray-600 hover:text-blue-600 font-medium">Curriculum</a>
+                                    <a href="#community" className="text-gray-600 hover:text-blue-600 font-medium">Community</a>
+                                    <a href="#workshops" className="text-gray-600 hover:text-blue-600 font-medium">Workshops</a>
+                                    <a href="https://nas.io/aiguild/home" target="_blank" rel="noreferrer" className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold hover:bg-blue-700 transition shadow-md flex items-center gap-2">
+                                        Join Now <Icon name="arrowRight" className="w-4 h-4" />
+                                    </a>
+                                </div>
+                                <div className="md:hidden flex items-center">
+                                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-600 hover:text-blue-600">
+                                        <Icon name={isMenuOpen ? "x" : "menu"} className="w-6 h-6" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Mobile Menu */}
+                        {isMenuOpen && (
+                            <div className="md:hidden bg-white border-t p-4 space-y-2 shadow-lg">
+                                <a href="#curriculum" className="block text-gray-700 font-medium py-2">Curriculum</a>
+                                <a href="#community" className="block text-gray-700 font-medium py-2">Community</a>
+                                <a href="https://nas.io/aiguild/home" className="block bg-blue-600 text-white text-center py-3 rounded-lg font-bold mt-2">Join Now</a>
+                            </div>
+                        )}
+                    </nav>
+
+                    {/* Hero Section */}
+                    <section className="relative bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 text-white py-20 lg:py-32 overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20">
+                            <div className="absolute top-10 left-10 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+                            <div className="absolute top-10 right-10 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+                            <div className="absolute -bottom-8 left-20 w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
+                        </div>
+
+                        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center">
+                            <div className="md:w-3/5 text-center md:text-left mb-10 md:mb-0">
+                                <div className="inline-block px-4 py-1 rounded-full bg-blue-800 bg-opacity-50 border border-blue-400 text-blue-300 text-sm font-semibold mb-6">
+                                    🚀 Zero to Pro in 6 Months
+                                </div>
+                                <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
+                                    Gain Hands-on <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400">Industry Experience</span>
+                                </h1>
+                                <p className="text-xl md:text-2xl text-blue-100 mb-8 font-light">
+                                    Land your dream job or build your startup with the most beginner-friendly curriculum in AI & Generative AI.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                                    <a href="https://nas.io/aiguild/home" target="_blank" rel="noreferrer" className="bg-yellow-500 text-blue-900 text-lg px-8 py-4 rounded-lg font-bold hover:bg-yellow-400 transition shadow-[0_0_20px_rgba(234,179,8,0.5)] flex items-center justify-center gap-2 transform hover:scale-105">
+                                        Get 30% OFF Annual Membership <Icon name="arrowRight" className="w-5 h-5" />
+                                    </a>
+                                    <a href="#curriculum" className="px-8 py-4 rounded-lg font-bold border border-white hover:bg-white hover:text-blue-900 transition flex items-center justify-center">
+                                        View Curriculum
+                                    </a>
+                                </div>
+                                <p className="mt-4 text-sm text-gray-300">
+                                    <span className="text-yellow-400 font-bold">Limited Time:</span> Offer expires in {formatTime(timeLeft)} minutes!
+                                </p>
+                            </div>
+
+                            <div className="md:w-2/5 flex justify-center relative">
+                                <div className="relative w-full max-w-md bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-6 border border-white border-opacity-20 shadow-2xl">
+                                    <div className="flex items-center justify-between mb-4 border-b border-white border-opacity-10 pb-4">
+                                        <h3 className="font-bold text-lg">AI Guild Membership</h3>
+                                        <span className="bg-green-500 text-xs px-2 py-1 rounded text-white font-bold">ACTIVE</span>
+                                    </div>
+                                    <ul className="space-y-3">
+                                        {['40+ Premium Products', '$4,000+ Worth of Content', 'Private WhatsApp Group', '24/7 Support Channel', 'Exclusive Events Access'].map((item, i) => (
+                                            <li key={i} className="flex items-center gap-3 text-sm">
+                                                <Icon name="check" className="w-5 h-5 text-green-400" /> {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <div className="mt-6 pt-4 border-t border-white border-opacity-10 text-center">
+                                        <div className="text-3xl font-bold text-white">$19<span className="text-sm font-normal text-gray-300">/mo</span></div>
+                                        <div className="text-xs text-gray-300 line-through">$4000 value</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Benefits */}
+                    <section className="bg-white py-12 shadow-sm border-b">
+                        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                            {benefits.map((b, i) => (
+                                <div key={i} className="flex flex-col items-center">
+                                    <Icon name={b.icon} className="w-8 h-8 text-blue-600 mb-2" />
+                                    <h3 className="text-xl font-bold text-gray-900">{b.title}</h3>
+                                    <p className="text-sm text-gray-500 mt-1 px-4">{b.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Curriculum */}
+                    <section id="curriculum" className="py-20 bg-gray-50">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="text-center mb-16">
+                                <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-4">The Most Comprehensive AI Curriculum</h2>
+                                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                                    Access <span className="text-blue-600 font-bold">320+ Hours</span> of content. From essential prerequisites to advanced agentic workflows.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {curriculum.map((item, index) => (
+                                    <div key={index} className="bg-white rounded-xl shadow-md hover:shadow-xl transition duration-300 p-6 border border-gray-100 group">
+                                        <div className="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center mb-4 group-hover:scale-110 transition">
+                                            <Icon name={item.icon} className={`w-6 h-6 ${item.color}`} />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition">{item.title}</h3>
+                                        <p className="text-sm text-gray-500">{item.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-12 text-center">
+                                <p className="text-gray-600 mb-6 font-medium">And 20+ more modules including Project-based Workshops & Masterclasses!</p>
+                                <a href="https://nas.io/aiguild/home" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg">
+                                    Unlock Full Access (Ends in {formatTime(timeLeft)})
+                                </a>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Community */}
+                    <section id="community" className="py-20 bg-white">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex flex-col lg:flex-row items-center gap-12">
+                                <div className="lg:w-1/2">
+                                    <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6">
+                                        Join an Exclusive <span className="text-green-600">Community</span>
+                                    </h2>
+                                    <p className="text-lg text-gray-600 mb-8">
+                                        Learning AI is hard alone. We make it easy together. Network with MENA's most passionate AI enthusiasts.
+                                    </p>
+                                    <div className="space-y-6">
+                                        <div className="flex items-start gap-4 p-4 bg-green-50 rounded-xl border border-green-100">
+                                            <div className="p-3 bg-green-500 rounded-full text-white"><Icon name="message" className="w-6 h-6" /></div>
+                                            <div><h4 className="font-bold text-gray-900 text-lg">Private WhatsApp Group</h4><p className="text-gray-600 text-sm">Instant access to peers, job alerts, and daily AI news updates.</p></div>
+                                        </div>
+                                        <div className="flex items-start gap-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                                            <div className="p-3 bg-indigo-500 rounded-full text-white"><Icon name="users" className="w-6 h-6" /></div>
+                                            <div><h4 className="font-bold text-gray-900 text-lg">24/7 Discord Support</h4><p className="text-gray-600 text-sm">Debug code, share projects, and get explosive access to approvals.</p></div>
+                                        </div>
+                                        <div className="flex items-start gap-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
+                                            <div className="p-3 bg-purple-500 rounded-full text-white"><Icon name="briefcase" className="w-6 h-6" /></div>
+                                            <div><h4 className="font-bold text-gray-900 text-lg">Business & Job Opportunities</h4><p className="text-gray-600 text-sm">Direct referrals and unique opportunities within the network.</p></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="lg:w-1/2 relative">
+                                    <div className="bg-gray-900 rounded-2xl p-6 shadow-2xl relative z-10 text-white max-w-md mx-auto transform rotate-1 hover:rotate-0 transition duration-500">
+                                        <div className="border-b border-gray-700 pb-4 mb-4 flex justify-between items-center">
+                                            <div className="font-bold flex items-center gap-2"><div className="w-3 h-3 bg-green-500 rounded-full"></div> #general-chat</div>
+                                            <Icon name="users" className="w-5 h-5 text-gray-400" />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                                <div className="bg-gray-800 p-3 rounded-r-xl rounded-bl-xl text-sm">
+                                                    <p className="text-blue-300 text-xs font-bold mb-1">Sarah (Data Scientist)</p>Has anyone tried the new Gemini multimodal features?
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3 flex-row-reverse">
+                                                <div className="w-8 h-8 rounded-full bg-purple-500 flex-shrink-0"></div>
+                                                <div className="bg-blue-600 p-3 rounded-l-xl rounded-br-xl text-sm">
+                                                    <p className="text-white text-xs font-bold mb-1">You</p>Yes! Used it to analyze the video dataset. The code is in the repo! 🚀
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-6 pt-4 border-t border-gray-700">
+                                            <div className="bg-gray-800 h-10 rounded-full flex items-center px-4 text-gray-500 text-sm">Type a message...</div>
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-10 -right-4 w-72 h-72 bg-blue-500 rounded-full opacity-10 filter blur-3xl z-0"></div>
+                                    <div className="absolute -bottom-10 -left-4 w-72 h-72 bg-green-500 rounded-full opacity-10 filter blur-3xl z-0"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Workshops */}
+                    <section id="workshops" className="py-20 bg-gray-50">
+                        <div className="max-w-7xl mx-auto px-4">
+                            <div className="text-center mb-12">
+                                <h2 className="text-3xl font-extrabold text-gray-900">Live Workshops & Events</h2>
+                                <p className="mt-4 text-lg text-gray-600">We don't just give you videos. We build with you live.</p>
+                            </div>
+                            <div className="flex flex-wrap justify-center gap-6">
+                                <div className="bg-white p-6 rounded-xl shadow-md max-w-sm border-l-4 border-red-500">
+                                    <div className="text-red-500 font-bold text-sm mb-2 uppercase tracking-wide flex items-center gap-2"><Icon name="video" className="w-4 h-4"/> Live Masterclass</div>
+                                    <h3 className="text-xl font-bold mb-2">Building AI Agents from Scratch</h3>
+                                    <p className="text-gray-500 mb-4">Join 200+ members in this coding session where we deploy a multi-agent system.</p>
+                                    <span className="text-sm font-semibold text-gray-800">Every Weekend</span>
+                                </div>
+                                <div className="bg-white p-6 rounded-xl shadow-md max-w-sm border-l-4 border-blue-500">
+                                    <div className="text-blue-500 font-bold text-sm mb-2 uppercase tracking-wide flex items-center gap-2"><Icon name="users" className="w-4 h-4"/> Career Talk</div>
+                                    <h3 className="text-xl font-bold mb-2">Portfolio Review & Mock Interviews</h3>
+                                    <p className="text-gray-500 mb-4">Senior industry leaders review your AI portfolio and give feedback.</p>
+                                    <span className="text-sm font-semibold text-gray-800">Monthly Event</span>
+                                </div>
+                                <div className="bg-white p-6 rounded-xl shadow-md max-w-sm border-l-4 border-purple-500">
+                                    <div className="text-purple-500 font-bold text-sm mb-2 uppercase tracking-wide flex items-center gap-2"><Icon name="calendar" className="w-4 h-4"/> Hackathons</div>
+                                    <h3 className="text-xl font-bold mb-2">Quarterly AI Hackathons</h3>
+                                    <p className="text-gray-500 mb-4">Team up, build a product in 48 hours, and win exclusive prizes.</p>
+                                    <span className="text-sm font-semibold text-gray-800">Quarterly</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Footer CTA */}
+                    <section className="bg-blue-900 py-16 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-full">
+                            <div className="absolute w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -top-20 -left-20"></div>
+                            <div className="absolute w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 bottom-0 right-0"></div>
+                        </div>
+                        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+                            <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-6">Ready to Start Your AI Journey?</h2>
+                            <p className="text-xl text-blue-100 mb-8">Get access to $4,000+ worth of content and a supportive community for a small fee.</p>
+                            <div className="bg-white rounded-2xl p-8 max-w-lg mx-auto shadow-2xl transform hover:scale-105 transition duration-300">
+                                <div className="text-gray-500 uppercase tracking-widest text-xs font-bold mb-2">Exclusive Offer</div>
+                                <div className="text-4xl font-extrabold text-gray-900 mb-2">30% OFF <span className="text-lg font-normal text-gray-500">Annual Membership</span></div>
+                                <div className="h-1 w-20 bg-blue-600 mx-auto my-4 rounded"></div>
+                                <ul className="text-left space-y-3 mb-8 text-gray-600">
+                                    <li className="flex gap-2"><Icon name="check" className="w-5 h-5 text-green-500 flex-shrink-0" /> Access to all 40+ Courses</li>
+                                    <li className="flex gap-2"><Icon name="check" className="w-5 h-5 text-green-500 flex-shrink-0" /> Live Mentorship & Workshops</li>
+                                    <li className="flex gap-2"><Icon name="check" className="w-5 h-5 text-green-500 flex-shrink-0" /> Certificate of Completion</li>
+                                </ul>
+                                <a href="https://nas.io/aiguild/home" target="_blank" rel="noreferrer" className="block w-full bg-yellow-500 hover:bg-yellow-400 text-blue-900 font-bold text-xl py-4 rounded-xl shadow-lg transition flex justify-center items-center gap-2">
+                                    Claim 30% Discount <Icon name="arrowRight" className="w-6 h-6" />
+                                </a>
+                                <p className="mt-4 text-xs text-red-500 font-bold animate-pulse">Timer: {formatTime(timeLeft)} remaining</p>
+                            </div>
+                            <p className="mt-8 text-blue-200 text-sm">100% Satisfaction Guarantee. Join 100+ members today.</p>
+                        </div>
+                    </section>
+
+                    <footer className="bg-gray-900 text-gray-400 py-12 border-t border-gray-800">
+                        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+                            <div className="mb-4 md:mb-0">
+                                <span className="text-2xl font-extrabold text-white tracking-tight">AI<span className="text-blue-600">GUILD</span></span>
+                                <p className="text-sm mt-2">The best way to start your AI journey.</p>
+                            </div>
+                            <div className="flex gap-6 text-sm">
+                                <a href="#" className="hover:text-white">Privacy Policy</a>
+                                <a href="#" className="hover:text-white">Terms of Service</a>
+                                <a href="#" className="hover:text-white">Contact Support</a>
+                            </div>
+                            <div className="mt-4 md:mt-0 text-xs">© 2024 AI Guild. All rights reserved.</div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+</html>
